@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Seleno - The Electric Dog (1912)</title>
+    <style>
+        :root {
+            --sepia-dark: #2b1d0e;
+            --sepia-mid: #5e4632;
+            --sepia-light: #d4bc96;
+            --brass: #b5a642;
+            --oxide-red: #8b3a2b;
+            --bg-color: #1a120b;
+            --font-mono: 'Courier New', Courier, monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--sepia-light);
+            font-family: var(--font-mono);
+            touch-action: none;
+        }
+
+        /* Effetto Pellicola Antica */
+        #film-grain {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            background: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIj48ZmlsdGVyIGlkPSJuIj48ZmVUdXJidWxlbmNlIHR5cGU9ImZyYWN0YWxOb2lzZSIgYmFzZUZyZXF1ZW5jeT0iMC42NSIgbnVtT2N0YXZlcz0iMyIgc3RpdGNoVGlsZXM9InN0aXRjaCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNuKSIgb3BhY2l0eT0iMC4zIi8+PC9zdmc+');
+            opacity: 0.3;
+        }
+
+        #vignette {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 101;
+            background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%);
+        }
+
+        canvas { display: block; background-color: var(--sepia-dark); }
+
+        /* HAMBURGER MENU */
+        #ham {
+            position: fixed; top: 20px; left: 20px; z-index: 300;
+            width: 45px; height: 45px;
+            background: var(--sepia-dark);
+            border: 2px solid var(--brass);
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+        }
+        #ham span { width: 25px; height: 3px; background: var(--brass); transition: 0.3s; }
+        #ham.open span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+        #ham.open span:nth-child(2) { opacity: 0; }
+        #ham.open span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+        /* UI OVERLAYS */
+        .overlay {
+            position: fixed; inset: 0;
+            background: black; color: white;
+            z-index: 400;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; font-family: 'Times New Roman', serif;
+            text-transform: uppercase; letter-spacing: 5px;
+            padding: 40px;
+        }
+        .overlay.visible { display: flex; animation: fadeIn 1.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        #ui-overlay {
+            position: fixed; inset: 0;
+            background: rgba(26, 18, 11, 0.95);
+            z-index: 250;
+            display: none;
+            padding: 80px 20px 20px 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        #ui-overlay.open { display: block; }
+
+        .panel {
+            max-width: 500px; margin: 0 auto;
+            background: rgba(43, 29, 14, 0.5);
+            border: 1px solid var(--sepia-mid);
+            padding: 20px;
+            border-radius: 4px;
+        }
+
+        h1, h2 { text-transform: uppercase; color: var(--brass); border-bottom: 2px solid var(--sepia-mid); padding-bottom: 10px; }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; }
+        h2 { font-size: 2.5rem; margin-bottom: 20px; border: none; }
+        
+        .control-group { margin-bottom: 20px; }
+        .control-group label { display: block; font-size: 0.8rem; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; color: var(--brass); }
+        
+        input[type="range"] {
+            width: 100%; accent-color: var(--brass); background: var(--sepia-mid); height: 6px; border-radius: 3px; appearance: none;
+        }
+
+        .btn {
+            background: var(--sepia-mid); color: var(--sepia-light); border: 1px solid var(--brass);
+            padding: 12px; cursor: pointer; font-family: var(--font-mono); font-size: 0.9rem;
+            text-transform: uppercase; width: 100%; transition: all 0.2s; margin-bottom: 10px;
+        }
+        .btn:active, .btn.active { background: var(--brass); color: var(--sepia-dark); }
+
+        .legend-text { font-size: 0.9rem; line-height: 1.6; margin-top: 20px; color: var(--sepia-light); border-top: 1px solid var(--sepia-mid); pt: 15px; }
+        .legend-text strong { color: var(--brass); }
+
+        .meters { display: flex; gap: 10px; margin-top: 20px; }
+        .meter { flex: 1; height: 35px; background: #000; border: 1px solid var(--sepia-mid); position: relative; }
+        .meter-fill { height: 100%; background: var(--brass); width: 0%; opacity: 0.7; }
+        .meter-label { position: absolute; font-size: 0.7rem; top: 50%; left: 10px; transform: translateY(-50%); color: #fff; }
+
+        #status-badge {
+            position: fixed; top: 25px; right: 20px; z-index: 200;
+            font-size: 0.7rem; color: var(--brass); background: rgba(0,0,0,0.4);
+            padding: 5px 10px; border-radius: 3px; border: 1px solid var(--sepia-mid);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="film-grain"></div>
+    <div id="vignette"></div>
+
+    <div id="ham">
+        <span></span><span></span><span></span>
+    </div>
+
+    <div id="status-badge">SYSTEM: <span id="sys-mode">ATTRACTION</span></div>
+
+    <!-- Intro Screen -->
+    <div id="intro-msg" class="overlay visible">
+        <h2>Laboratory Mission</h2>
+        <p style="font-size: 1.2rem; max-width: 600px; margin: 20px auto; letter-spacing: 2px;">
+            The year is 1912. Seleno, the electric dog, is lost in the Gloucester laboratory equipment.<br><br>
+            Guide the automaton back to its wooden kennel using the phototropic lantern.
+        </p>
+        <button id="start-btn" class="btn" style="width: auto; margin-top: 40px; padding: 10px 40px;">Begin Experiment</button>
+    </div>
+
+    <!-- Success Screen -->
+    <div id="success-msg" class="overlay">
+        <h2>Experiment Successful</h2>
+        <p style="font-size: 1.2rem;">Seleno has returned home.</p>
+        <button id="restart-btn" class="btn" style="width: auto; margin-top: 40px; padding: 10px 40px;">Next Experiment</button>
+    </div>
+
+    <div id="ui-overlay">
+        <div class="panel">
+            <h1>Seleno (1912)</h1>
+            
+            <div class="control-group">
+                <button id="reshuffle-btn" class="btn">Reshuffle Laboratory</button>
+            </div>
+
+            <div class="control-group">
+                <label>Tail Switch Polarity</label>
+                <button id="toggle-mode" class="btn">Invert Polarity</button>
+            </div>
+
+            <div class="control-group">
+                <label>Pneumatic Dashpot: <span id="dash-val">0.50</span></label>
+                <input type="range" id="dashpot" min="0" max="0.98" step="0.01" value="0.5">
+            </div>
+
+            <div class="meters">
+                <div class="meter"><div id="m-left" class="meter-fill"></div><span class="meter-label">L-CELL</span></div>
+                <div class="meter"><div id="m-right" class="meter-fill"></div><span class="meter-label">R-CELL</span></div>
+            </div>
+
+            <div class="legend-text">
+                <strong>OBJECTIVE:</strong> Guide Seleno to the oxide-red kennel avoiding obstacles.<br><br>
+                • <strong>The Lantern:</strong> Drag to move, <strong>Tap</strong> to toggle power.<br>
+                • <strong>Logic:</strong> Attraction (+) follows light; Repulsion (-) flees from it.<br>
+                • <strong>Stability:</strong> Use the Dashpot to prevent oscillatory steering behaviors.
+            </div>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const dashSlider = document.getElementById('dashpot');
+        const toggleBtn = document.getElementById('toggle-mode');
+        const reshuffleBtn = document.getElementById('reshuffle-btn');
+        const startBtn = document.getElementById('start-btn');
+        const restartBtn = document.getElementById('restart-btn');
+        const ham = document.getElementById('ham');
+        const overlay = document.getElementById('ui-overlay');
+        const introMsg = document.getElementById('intro-msg');
+        const successMsg = document.getElementById('success-msg');
+        
+        let width, height;
+        let obstacles = [];
+        let gameActive = false;
+        let gameWon = false;
+        
+        const config = {
+            friction: 0.94,
+            angularFriction: 0.82,
+            dashpot: 0.5,
+            speedMultiplier: 1.1,
+            mode: 1, // 1: Attraction, -1: Repulsion
+            trailLength: 150
+        };
+
+        class Obstacle {
+            constructor(x, y, w, h) {
+                this.x = x; this.y = y; this.w = w; this.h = h;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.fillStyle = '#3a2a1a';
+                ctx.shadowBlur = 12;
+                ctx.shadowColor = 'black';
+                ctx.fillRect(0, 0, this.w, this.h);
+                ctx.strokeStyle = '#2b1d0e';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(4, 4, this.w-8, this.h-8);
+                // Wood grain effect
+                ctx.beginPath();
+                ctx.moveTo(0,0); ctx.lineTo(this.w, this.h);
+                ctx.moveTo(this.w, 0); ctx.lineTo(0, this.h);
+                ctx.stroke();
+                ctx.restore();
+            }
+        }
+
+        class Kennel {
+            constructor(x, y) {
+                this.x = x; this.y = y;
+                this.size = 90;
+            }
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                // Roof (Darker Brass)
+                ctx.fillStyle = '#6e5a2d';
+                ctx.beginPath();
+                ctx.moveTo(0, -this.size/2);
+                ctx.lineTo(this.size/2, 5);
+                ctx.lineTo(-this.size/2, 5);
+                ctx.fill();
+                // Body (Oxide Red)
+                ctx.fillStyle = '#8b3a2b';
+                ctx.fillRect(-this.size/2 + 8, 5, this.size-16, this.size/2);
+                ctx.strokeStyle = '#2b1d0e';
+                ctx.strokeRect(-this.size/2 + 8, 5, this.size-16, this.size/2);
+                // Entrance
+                ctx.fillStyle = '#1a120b';
+                ctx.beginPath();
+                ctx.arc(0, this.size/2 + 5, 18, Math.PI, 0);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        class Lantern {
+            constructor() {
+                this.x = 0; this.y = 0;
+                this.radius = 25;
+                this.active = true;
+                this.isDragging = false;
+            }
+            draw() {
+                if (this.active) {
+                    const grad = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 250);
+                    grad.addColorStop(0, 'rgba(255, 245, 180, 0.4)');
+                    grad.addColorStop(1, 'rgba(255, 245, 180, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 250, 0, Math.PI*2);
+                    ctx.fill();
+                }
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.shadowBlur = 10; ctx.shadowColor = 'black';
+                ctx.fillStyle = '#b5a642'; ctx.fillRect(-12, 12, 24, 6);
+                ctx.fillStyle = this.active ? '#fffde0' : '#444'; ctx.fillRect(-10, -15, 20, 27);
+                ctx.fillStyle = '#8a7d32'; ctx.fillRect(-14, -18, 28, 6);
+                if (this.active) {
+                    ctx.shadowBlur = 15; ctx.shadowColor = '#fff';
+                    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
+            }
+            contains(px, py) {
+                const dx = px - this.x;
+                const dy = py - this.y;
+                return Math.sqrt(dx*dx + dy*dy) < this.radius + 35;
+            }
+        }
+
+        class Seleno {
+            constructor() {
+                this.width = 50;
+                this.height = 80;
+                this.trail = [];
+                this.reset();
+            }
+            reset() {
+                this.x = Math.random() * (width - 150) + 75;
+                this.y = Math.random() * (height - 150) + 75;
+                this.angle = Math.random() * Math.PI * 2;
+                this.vel = 0;
+                this.angVel = 0;
+                this.currentSteer = 0;
+                this.sLeft = 0;
+                this.sRight = 0;
+                this.trail = [];
+            }
+            update(lantern, kennel) {
+                if (!gameActive || gameWon) return;
+
+                const sensorDist = 22;
+                const sensorAngle = 0.5;
+                const slX = this.x + Math.cos(this.angle - sensorAngle) * sensorDist;
+                const slY = this.y + Math.sin(this.angle - sensorAngle) * sensorDist;
+                const srX = this.x + Math.cos(this.angle + sensorAngle) * sensorDist;
+                const srY = this.y + Math.sin(this.angle + sensorAngle) * sensorDist;
+
+                if (lantern.active) {
+                    this.sLeft = this.calculateLight(slX, slY, -sensorAngle, lantern);
+                    this.sRight = this.calculateLight(srX, srY, sensorAngle, lantern);
+                } else {
+                    this.sLeft *= 0.8; this.sRight *= 0.8;
+                }
+
+                const intensity = (this.sLeft + this.sRight) / 2;
+                
+                // FIXED POLARITY LOGIC:
+                // If sLeft > sRight and mode is Attraction (1), steer should be negative (turn left)
+                const diff = (this.sRight - this.sLeft) * config.mode;
+                
+                const targetSteer = diff * 0.18;
+                this.currentSteer += (targetSteer - this.currentSteer) * (1 - config.dashpot);
+
+                if (intensity > 0.04) {
+                    this.vel += Math.min(intensity, 0.55) * config.speedMultiplier;
+                }
+
+                this.angVel += this.currentSteer;
+                this.angle += this.angVel;
+                
+                const nextX = this.x + Math.cos(this.angle) * this.vel;
+                const nextY = this.y + Math.sin(this.angle) * this.vel;
+
+                // Collisions (Edges)
+                const margin = 28;
+                let collided = false;
+                if (nextX < margin || nextX > width - margin || nextY < margin || nextY > height - margin) {
+                    collided = true;
+                }
+
+                // Collisions (Obstacles)
+                obstacles.forEach(o => {
+                    if (nextX > o.x - 12 && nextX < o.x + o.w + 12 && nextY > o.y - 12 && nextY < o.y + o.h + 12) {
+                        collided = true;
+                    }
+                });
+
+                if (!collided) {
+                    this.x = nextX;
+                    this.y = nextY;
+                } else {
+                    this.vel *= -0.35;
+                    this.angVel *= 0.45;
+                }
+
+                this.vel *= config.friction;
+                this.angVel *= config.angularFriction;
+
+                this.trail.push({x: this.x, y: this.y});
+                if (this.trail.length > config.trailLength) this.trail.shift();
+
+                // Win Condition
+                const distToKennel = Math.sqrt((this.x - kennel.x)**2 + (this.y - (kennel.y + 15))**2);
+                if (distToKennel < 45) triggerWin();
+
+                document.getElementById('m-left').style.width = `${Math.min(this.sLeft * 100, 100)}%`;
+                document.getElementById('m-right').style.width = `${Math.min(this.sRight * 100, 100)}%`;
+            }
+
+            calculateLight(sx, sy, sideAngle, lantern) {
+                const dx = lantern.x - sx;
+                const dy = lantern.y - sy;
+                const distSq = dx*dx + dy*dy;
+                let val = 2100 / (distSq + 650);
+                const angleToLight = Math.atan2(lantern.y - this.y, lantern.x - this.x);
+                let relativeAngle = angleToLight - this.angle;
+                while (relativeAngle > Math.PI) relativeAngle -= Math.PI * 2;
+                while (relativeAngle < -Math.PI) relativeAngle += Math.PI * 2;
+                // Shadow of the Nose logic
+                if (sideAngle < 0 && relativeAngle > 0.22) val *= 0.12;
+                if (sideAngle > 0 && relativeAngle < -0.22) val *= 0.12;
+                return val;
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgba(212, 188, 150, 0.08)';
+                ctx.lineWidth = 1;
+                this.trail.forEach((p, i) => {
+                    if (i===0) ctx.moveTo(p.x, p.y);
+                    else ctx.lineTo(p.x, p.y);
+                });
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                ctx.shadowBlur = 15; ctx.shadowColor = 'black';
+                ctx.fillStyle = '#3d2b1c'; ctx.fillRect(-40, -25, 80, 50);
+                ctx.strokeStyle = '#b5a642'; ctx.lineWidth = 2; ctx.strokeRect(-40, -25, 80, 50);
+                ctx.fillStyle = '#b5a642';
+                ctx.fillRect(32, -22, 10, 8); // L-Cell
+                ctx.fillRect(32, 14, 10, 8);  // R-Cell
+                ctx.fillStyle = '#1a120b'; ctx.fillRect(28, -2, 20, 4); // Nose
+                ctx.fillStyle = '#111'; ctx.fillRect(-30, -32, 20, 8); ctx.fillRect(-30, 24, 20, 8); // Wheels
+                ctx.restore();
+            }
+        }
+
+        const seleno = new Seleno();
+        const lantern = new Lantern();
+        let kennel;
+
+        function shuffleLab() {
+            gameWon = false;
+            successMsg.classList.remove('visible');
+            seleno.reset();
+            
+            let kx, ky;
+            do {
+                kx = Math.random() * (width - 250) + 125;
+                ky = Math.random() * (height - 250) + 125;
+            } while (Math.sqrt((kx - seleno.x)**2 + (ky - seleno.y)**2) < 350);
+            kennel = new Kennel(kx, ky);
+
+            lantern.x = seleno.x + 120;
+            lantern.y = seleno.y;
+
+            obstacles = [];
+            const obstacleCount = 15;
+            for(let i=0; i < obstacleCount; i++) {
+                let ox, oy, ow, oh;
+                let valid = false;
+                let attempts = 0;
+                while(!valid && attempts < 50) {
+                    ow = 45 + Math.random() * 55;
+                    oh = 45 + Math.random() * 55;
+                    ox = Math.random() * (width - ow - 20) + 10;
+                    oy = Math.random() * (height - oh - 20) + 10;
+                    
+                    const distS = Math.sqrt((ox+ow/2 - seleno.x)**2 + (oy+oh/2 - seleno.y)**2);
+                    const distK = Math.sqrt((ox+ow/2 - kennel.x)**2 + (oy+oh/2 - kennel.y)**2);
+                    
+                    // No overlap with Seleno, Kennel
+                    if (distS > 130 && distK > 130) {
+                        valid = true;
+                        // No overlap with other obstacles
+                        for (let o of obstacles) {
+                            if (!(ox + ow < o.x || ox > o.x + o.w || oy + oh < o.y || oy > o.y + o.h)) {
+                                valid = false;
+                                break;
+                            }
+                        }
+                    }
+                    attempts++;
+                }
+                if (valid) obstacles.push(new Obstacle(ox, oy, ow, oh));
+            }
+        }
+
+        function triggerWin() {
+            if (gameWon) return;
+            gameWon = true;
+            successMsg.classList.add('visible');
+        }
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            shuffleLab();
+        }
+
+        function init() {
+            resize();
+            window.addEventListener('resize', resize);
+
+            const getPos = (e) => {
+                const t = e.touches ? e.touches[0] : e;
+                return { x: t.clientX, y: t.clientY };
+            };
+
+            const startAction = (e) => {
+                const pos = getPos(e);
+                if (lantern.contains(pos.x, pos.y)) {
+                    lantern.isDragging = true;
+                    this.dragStart = Date.now();
+                }
+            };
+
+            const moveAction = (e) => {
+                if (lantern.isDragging) {
+                    const pos = getPos(e);
+                    lantern.x = pos.x; lantern.y = pos.y;
+                }
+            };
+
+            const endAction = (e) => {
+                if (lantern.isDragging) {
+                    if (Date.now() - this.dragStart < 200) lantern.active = !lantern.active;
+                    lantern.isDragging = false;
+                }
+            };
+
+            window.addEventListener('mousedown', startAction);
+            window.addEventListener('mousemove', moveAction);
+            window.addEventListener('mouseup', endAction);
+            window.addEventListener('touchstart', startAction);
+            window.addEventListener('touchmove', moveAction);
+            window.addEventListener('touchend', endAction);
+
+            ham.onclick = () => { ham.classList.toggle('open'); overlay.classList.toggle('open'); };
+            reshuffleBtn.onclick = () => { shuffleLab(); ham.click(); };
+            
+            startBtn.onclick = () => {
+                gameActive = true;
+                introMsg.classList.remove('visible');
+            };
+
+            restartBtn.onclick = () => shuffleLab();
+            
+            dashSlider.oninput = (e) => {
+                config.dashpot = parseFloat(e.target.value);
+                document.getElementById('dash-val').innerText = config.dashpot.toFixed(2);
+            };
+            
+            toggleBtn.onclick = () => {
+                config.mode *= -1;
+                document.getElementById('sys-mode').innerText = config.mode === 1 ? "ATTRACTION" : "REPULSION";
+                toggleBtn.classList.toggle('active', config.mode === -1);
+            };
+
+            loop();
+        }
+
+        function loop() {
+            ctx.fillStyle = 'rgba(26, 18, 11, 0.22)';
+            ctx.fillRect(0, 0, width, height);
+
+            if (gameActive) {
+                kennel.draw();
+                obstacles.forEach(o => o.draw());
+                seleno.update(lantern, kennel);
+                seleno.draw();
+                lantern.draw();
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
